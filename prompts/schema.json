@@ -1,0 +1,617 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://tas-assistant.app/schemas/unit-plan/v1.0.0",
+  "title": "TAS Unit Plan Schema",
+  "description": "Comprehensive schema for Australian RTO unit plan generation conforming to ASQA standards",
+  "type": "object",
+  "required": ["metadata", "meta", "units", "weekly_plan", "confidence_score"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "description": "Schema versioning and type information",
+      "required": ["schema_version", "project_type", "generated_at"],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "description": "Semantic version of this schema (MAJOR.MINOR.PATCH)",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "examples": ["1.0.0"]
+        },
+        "project_type": {
+          "type": "string",
+          "description": "Type of TAS project document",
+          "enum": ["unit_plan", "session_plan", "assessment_plan"],
+          "default": "unit_plan"
+        },
+        "generated_at": {
+          "type": "string",
+          "description": "ISO 8601 timestamp of generation",
+          "format": "date-time",
+          "examples": ["2025-11-01T10:30:00Z"]
+        },
+        "generator_model": {
+          "type": "string",
+          "description": "AI model used for generation",
+          "examples": ["claude-3-5-sonnet-20241022"]
+        },
+        "reserved": {
+          "type": "object",
+          "description": "Reserved namespace for future metadata fields",
+          "additionalProperties": true
+        }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "description": "High-level plan metadata and context",
+      "required": ["qualification", "duration", "delivery_mode", "cohort_profile"],
+      "additionalProperties": false,
+      "properties": {
+        "qualification": {
+          "type": "object",
+          "description": "Qualification or course details",
+          "required": ["title"],
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "National qualification code from training.gov.au",
+              "pattern": "^[A-Z]{3}[0-9]{5}$|^$",
+              "examples": ["BSB50120", "CHC33015", ""]
+            },
+            "title": {
+              "type": "string",
+              "description": "Full qualification or course title",
+              "minLength": 5,
+              "maxLength": 200,
+              "examples": ["Certificate IV in Business", "Diploma of Community Services"]
+            },
+            "level": {
+              "type": "string",
+              "description": "AQF level or course type",
+              "enum": ["Certificate I", "Certificate II", "Certificate III", "Certificate IV", "Diploma", "Advanced Diploma", "Short Course", "Skill Set", ""],
+              "examples": ["Certificate IV", "Diploma"]
+            },
+            "packaging_rules": {
+              "type": "string",
+              "description": "Summary of unit packaging requirements",
+              "examples": ["12 core units + 4 electives", "All 8 units required"]
+            }
+          }
+        },
+        "duration": {
+          "type": "object",
+          "description": "Timeframe for plan delivery",
+          "required": ["weeks", "total_hours"],
+          "additionalProperties": false,
+          "properties": {
+            "weeks": {
+              "type": "integer",
+              "description": "Total duration in weeks",
+              "minimum": 1,
+              "maximum": 208,
+              "examples": [8, 12, 52]
+            },
+            "total_hours": {
+              "type": "number",
+              "description": "Total contact/nominal hours",
+              "minimum": 1,
+              "maximum": 10000,
+              "examples": [120, 360, 1200]
+            },
+            "hours_per_week": {
+              "type": "number",
+              "description": "Average hours per week (calculated or specified)",
+              "minimum": 0,
+              "examples": [15, 20, 38]
+            },
+            "study_mode": {
+              "type": "string",
+              "description": "Full-time or part-time study load",
+              "enum": ["full_time", "part_time", "flexible", ""],
+              "examples": ["full_time", "part_time"]
+            }
+          }
+        },
+        "delivery_mode": {
+          "type": "string",
+          "description": "Primary delivery modality",
+          "enum": ["face_to_face", "online", "blended", "workplace", "mixed"],
+          "examples": ["face_to_face", "blended"]
+        },
+        "cohort_profile": {
+          "type": "string",
+          "description": "Description of target learner demographics, LLN levels, special needs",
+          "minLength": 10,
+          "maxLength": 1000,
+          "examples": ["Adult learners aged 25-45, predominantly ESL background, LLN levels 3-4, some with prior industry experience in retail/hospitality"]
+        },
+        "trainer_details": {
+          "type": "object",
+          "description": "Trainer/assessor information",
+          "additionalProperties": false,
+          "properties": {
+            "primary_trainer": {
+              "type": "string",
+              "description": "Name or role of primary trainer",
+              "examples": ["Jane Smith", "TBA"]
+            },
+            "additional_trainers": {
+              "type": "array",
+              "description": "List of additional trainers involved",
+              "items": {
+                "type": "string"
+              },
+              "examples": [["John Doe", "Sarah Lee"]]
+            },
+            "qualifications_required": {
+              "type": "array",
+              "description": "Required trainer qualifications",
+              "items": {
+                "type": "string"
+              },
+              "examples": [["TAE40116", "Relevant industry qualification", "5+ years industry experience"]]
+            }
+          }
+        },
+        "start_date": {
+          "type": "string",
+          "description": "Planned start date (ISO 8601 format)",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "examples": ["2025-02-03", "2025-07-15"]
+        },
+        "end_date": {
+          "type": "string",
+          "description": "Planned end date (ISO 8601 format)",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "examples": ["2025-06-30", "2025-12-20"]
+        },
+        "venue": {
+          "type": "string",
+          "description": "Primary training location",
+          "examples": ["Melbourne CBD Campus", "Online via LMS", "Client workplace - Sydney"]
+        },
+        "class_size": {
+          "type": "object",
+          "description": "Cohort size constraints",
+          "additionalProperties": false,
+          "properties": {
+            "min": {
+              "type": "integer",
+              "minimum": 1,
+              "examples": [8]
+            },
+            "max": {
+              "type": "integer",
+              "minimum": 1,
+              "examples": [20]
+            },
+            "target": {
+              "type": "integer",
+              "minimum": 1,
+              "examples": [15]
+            }
+          }
+        }
+      }
+    },
+    "weekly_plan": {
+      "type": "array",
+      "description": "Week-by-week breakdown of delivery schedule",
+      "minItems": 1,
+      "maxItems": 208,
+      "items": {
+        "type": "object",
+        "required": ["week_number", "activities"],
+        "additionalProperties": false,
+        "properties": {
+          "week_number": {
+            "type": "integer",
+            "description": "Sequential week number",
+            "minimum": 1,
+            "examples": [1, 2, 10]
+          },
+          "week_theme": {
+            "type": "string",
+            "description": "Descriptive theme or focus for the week",
+            "maxLength": 200,
+            "examples": ["Introduction to Business Operations", "Workplace Health & Safety Fundamentals"]
+          },
+          "units_covered": {
+            "type": "array",
+            "description": "Unit codes addressed this week",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}[A-Z0-9]{6,10}$"
+            },
+            "examples": [["BSBWHS332X", "BSBOPS304"]]
+          },
+          "activities": {
+            "type": "array",
+            "description": "Learning activities scheduled for this week",
+            "minItems": 0,
+            "items": {
+              "type": "object",
+              "required": ["title", "duration_hours", "delivery_method"],
+              "additionalProperties": false,
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "description": "Activity name",
+                  "minLength": 3,
+                  "maxLength": 200,
+                  "examples": ["Risk Assessment Workshop", "Case Study: WHS Incident Investigation"]
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Detailed activity description",
+                  "maxLength": 1000,
+                  "examples": ["Learners work in groups to identify hazards in a simulated workplace scenario"]
+                },
+                "duration_hours": {
+                  "type": "number",
+                  "description": "Hours allocated to this activity",
+                  "minimum": 0.25,
+                  "maximum": 40,
+                  "examples": [2, 3.5, 8]
+                },
+                "delivery_method": {
+                  "type": "string",
+                  "description": "How the activity is delivered",
+                  "enum": ["lecture", "workshop", "tutorial", "practical", "online_module", "simulation", "workplace_visit", "guest_speaker", "group_work", "self_paced", "project", "other"],
+                  "examples": ["workshop", "practical"]
+                },
+                "resources": {
+                  "type": "array",
+                  "description": "Required resources for this activity",
+                  "items": {
+                    "type": "string"
+                  },
+                  "examples": [["PPE equipment", "Risk assessment templates", "Projector"]]
+                },
+                "learning_outcomes": {
+                  "type": "array",
+                  "description": "Specific outcomes addressed",
+                  "items": {
+                    "type": "string"
+                  },
+                  "examples": [["Identify workplace hazards", "Complete risk assessment forms"]]
+                }
+              }
+            }
+          },
+          "assessments": {
+            "type": "array",
+            "description": "Assessment tasks scheduled this week",
+            "items": {
+              "type": "object",
+              "required": ["title", "type", "units_assessed"],
+              "additionalProperties": false,
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "description": "Assessment task name",
+                  "minLength": 3,
+                  "maxLength": 200,
+                  "examples": ["Assessment Task 1: WHS Policy Review", "Practical Observation - First Aid"]
+                },
+                "type": {
+                  "type": "string",
+                  "description": "Assessment method type",
+                  "enum": ["written", "practical", "project", "portfolio", "observation", "presentation", "roleplay", "case_study", "exam", "interview", "recognition", "other"],
+                  "examples": ["written", "practical"]
+                },
+                "units_assessed": {
+                  "type": "array",
+                  "description": "Unit codes this assessment addresses",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}[A-Z0-9]{6,10}$"
+                  },
+                  "examples": [["BSBWHS332X"]]
+                },
+                "due_date": {
+                  "type": "string",
+                  "description": "Assessment due date (ISO format or relative)",
+                  "examples": ["2025-03-15", "End of week 4"]
+                },
+                "weighting": {
+                  "type": "string",
+                  "description": "Assessment weighting or importance indicator",
+                  "examples": ["Major", "Minor", "Pass/Fail"]
+                },
+                "duration_hours": {
+                  "type": "number",
+                  "description": "Time allocated for assessment completion",
+                  "minimum": 0,
+                  "examples": [2, 4]
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Brief assessment description",
+                  "maxLength": 500
+                }
+              }
+            }
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional notes, reminders, or considerations for this week",
+            "maxLength": 1000,
+            "examples": ["Public holiday Monday - adjust schedule", "Guest speaker confirmed for Thursday 2-4pm"]
+          }
+        }
+      }
+    },
+    "units": {
+      "type": "array",
+      "description": "Detailed unit information",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["unit_code", "unit_title", "nominal_hours"],
+        "additionalProperties": false,
+        "properties": {
+          "unit_code": {
+            "type": "string",
+            "description": "National unit code from training.gov.au",
+            "pattern": "^[A-Z]{3}[A-Z0-9]{6,10}$",
+            "examples": ["BSBWHS332X", "CHCCOM005"]
+          },
+          "unit_title": {
+            "type": "string",
+            "description": "Full unit title",
+            "minLength": 5,
+            "maxLength": 300,
+            "examples": ["Apply infection prevention and control procedures to own work activities"]
+          },
+          "nominal_hours": {
+            "type": "number",
+            "description": "Nominal hours as per training.gov.au",
+            "minimum": 1,
+            "maximum": 1000,
+            "examples": [40, 60, 120]
+          },
+          "unit_type": {
+            "type": "string",
+            "description": "Core or elective status",
+            "enum": ["core", "elective", "prerequisite", ""],
+            "examples": ["core", "elective"]
+          },
+          "delivery_methods": {
+            "type": "array",
+            "description": "Methods used to deliver this unit",
+            "items": {
+              "type": "string",
+              "enum": ["face_to_face", "online", "workplace", "simulation", "blended", "self_paced"]
+            },
+            "examples": [["face_to_face", "workplace"]]
+          },
+          "assessment_methods": {
+            "type": "array",
+            "description": "Assessment methods for this unit",
+            "items": {
+              "type": "string",
+              "enum": ["written", "practical", "project", "portfolio", "observation", "presentation", "roleplay", "case_study", "exam", "interview", "recognition", "third_party_report", "logbook"]
+            },
+            "examples": [["written", "practical", "observation"]]
+          },
+          "assessment_tasks": {
+            "type": "array",
+            "description": "Specific assessment tasks mapped to this unit",
+            "items": {
+              "type": "object",
+              "required": ["task_name", "method"],
+              "properties": {
+                "task_name": {
+                  "type": "string",
+                  "examples": ["AT1: Knowledge Questions", "AT2: Practical Demonstration"]
+                },
+                "method": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string",
+                  "maxLength": 500
+                }
+              }
+            }
+          },
+          "prerequisites": {
+            "type": "array",
+            "description": "Unit codes that must be completed first",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}[A-Z0-9]{6,10}$"
+            },
+            "examples": [["BSBWHS331"]]
+          },
+          "weeks_scheduled": {
+            "type": "array",
+            "description": "Week numbers when this unit is actively delivered",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "examples": [[1, 2, 3, 4]]
+          },
+          "learning_resources": {
+            "type": "array",
+            "description": "Specific resources for this unit",
+            "items": {
+              "type": "string"
+            },
+            "examples": [["Learner Guide v2.1", "WHS Legislation Handbook", "Online modules 1-5"]]
+          }
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "description": "Overall resource requirements for the plan",
+      "additionalProperties": false,
+      "properties": {
+        "facilities": {
+          "type": "array",
+          "description": "Physical spaces required",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["Standard classroom (20 capacity)", "Computer lab with 20 workstations", "Workshop area with safety equipment"]]
+        },
+        "equipment": {
+          "type": "array",
+          "description": "Equipment and tools needed",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["Data projector", "Whiteboard", "First aid training manikins", "PPE (gloves, safety glasses)"]]
+        },
+        "materials": {
+          "type": "array",
+          "description": "Consumable materials and learning resources",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["Learner workbooks (printed)", "Assessment templates", "Case study packs", "Stationery supplies"]]
+        },
+        "technology": {
+          "type": "array",
+          "description": "Technology and software requirements",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["LMS access (Moodle)", "Microsoft Office 365", "Zoom for online sessions", "Video recording capability"]]
+        },
+        "external": {
+          "type": "array",
+          "description": "External resources (industry visits, guest speakers)",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["Industry guest speaker (Week 3)", "Workplace visit to partnered employer", "External assessor for final practical"]]
+        }
+      }
+    },
+    "risks": {
+      "type": "array",
+      "description": "Identified risks and mitigation strategies",
+      "items": {
+        "type": "object",
+        "required": ["risk_description", "likelihood", "impact"],
+        "additionalProperties": false,
+        "properties": {
+          "risk_description": {
+            "type": "string",
+            "description": "Description of the identified risk",
+            "minLength": 10,
+            "maxLength": 500,
+            "examples": ["Low learner LLN levels may impact assessment completion rates"]
+          },
+          "category": {
+            "type": "string",
+            "description": "Risk category",
+            "enum": ["learner", "trainer", "resource", "compliance", "scheduling", "assessment", "external", "other"],
+            "examples": ["learner", "resource"]
+          },
+          "likelihood": {
+            "type": "string",
+            "description": "Probability of risk occurring",
+            "enum": ["low", "medium", "high"],
+            "examples": ["medium", "high"]
+          },
+          "impact": {
+            "type": "string",
+            "description": "Severity if risk occurs",
+            "enum": ["low", "medium", "high"],
+            "examples": ["medium", "high"]
+          },
+          "mitigation": {
+            "type": "string",
+            "description": "Strategy to mitigate or manage the risk",
+            "maxLength": 500,
+            "examples": ["Provide additional LLN support sessions in weeks 1-2; use simplified language in assessment tools"]
+          }
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "description": "Planning assumptions made during generation",
+      "items": {
+        "type": "object",
+        "required": ["assumption"],
+        "additionalProperties": false,
+        "properties": {
+          "assumption": {
+            "type": "string",
+            "description": "Statement of assumption",
+            "minLength": 10,
+            "maxLength": 500,
+            "examples": ["Learners have access to computer and internet for online components", "All trainers hold current TAE40116 or equivalent"]
+          },
+          "category": {
+            "type": "string",
+            "description": "Type of assumption",
+            "enum": ["learner_capability", "resource_availability", "trainer_qualification", "scheduling", "compliance", "other"],
+            "examples": ["resource_availability", "learner_capability"]
+          },
+          "validation_required": {
+            "type": "boolean",
+            "description": "Whether this assumption needs validation before delivery",
+            "examples": [true, false]
+          }
+        }
+      }
+    },
+    "compliance_notes": {
+      "type": "object",
+      "description": "ASQA compliance and audit considerations",
+      "additionalProperties": false,
+      "properties": {
+        "volume_of_learning": {
+          "type": "string",
+          "description": "Volume of learning justification (1200-2400h guidance)",
+          "maxLength": 500,
+          "examples": ["Total nominal hours: 720. Meets AQF Certificate IV volume of learning requirements (1200-2400h when including self-directed study and assessment time)"]
+        },
+        "training_packaging_compliance": {
+          "type": "string",
+          "description": "Notes on packaging rules compliance",
+          "maxLength": 500,
+          "examples": ["All 12 core units included. 4 electives selected from Group A as per packaging rules v3.2"]
+        },
+        "assessment_validation": {
+          "type": "string",
+          "description": "Assessment validation strategy",
+          "maxLength": 500,
+          "examples": ["Assessment tools to be validated pre-delivery by qualified validator. Moderation scheduled after first cohort delivery."]
+        },
+        "trainer_assessor_requirements": {
+          "type": "string",
+          "description": "Trainer/assessor compliance notes",
+          "maxLength": 500,
+          "examples": ["Trainers must hold TAE40116, relevant industry qualification (Cert IV or higher in Business), and minimum 2 years industry experience within last 5 years"]
+        }
+      }
+    },
+    "confidence_score": {
+      "type": "number",
+      "description": "AI's confidence in the quality and completeness of this plan (0.0 = no confidence, 1.0 = very high confidence)",
+      "minimum": 0,
+      "maximum": 1,
+      "examples": [0.85, 0.72, 0.95]
+    },
+    "generation_notes": {
+      "type": "string",
+      "description": "AI-generated notes about the plan creation process, limitations, or areas needing human review",
+      "maxLength": 2000,
+      "examples": ["Generated based on limited cohort information. Recommend reviewing LLN support strategies with actual learner profiles. Assessment scheduling assumes standard completion rates - adjust based on cohort progress."]
+    }
+  }
+}
