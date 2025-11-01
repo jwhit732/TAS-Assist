@@ -11,85 +11,90 @@ const MetadataSchema = z.object({
   schema_version: z.string().regex(/^\d+\.\d+\.\d+$/),
   project_type: z.enum(['unit_plan', 'session_plan', 'assessment_plan']).default('unit_plan'),
   generated_at: z.string().datetime(),
+  generator_model: z.string().optional(),
   reserved: z.record(z.string(), z.unknown()).optional().default({}),
 });
 
 // Qualification schema
 const QualificationSchema = z.object({
-  code: z.string().regex(/^[A-Z]{3}[A-Z0-9]{6,10}$/).or(z.literal('')),
+  code: z.string().optional(),
   title: z.string().min(5),
-  level: z.enum(['I', 'II', 'III', 'IV', 'Diploma', 'Advanced Diploma', 'Non-accredited']),
+  level: z.enum(['Certificate I', 'Certificate II', 'Certificate III', 'Certificate IV', 'Diploma', 'Advanced Diploma', 'Short Course', 'Skill Set', '']).optional(),
+  packaging_rules: z.string().optional(),
 });
 
 // Duration schema
 const DurationSchema = z.object({
   weeks: z.number().int().min(1).max(208),
-  total_hours: z.number().min(10).max(2000),
-  hours_per_week: z.number().min(1).max(40).optional(),
+  total_hours: z.number().min(1).max(10000),
+  hours_per_week: z.number().min(0).optional(),
+  study_mode: z.enum(['full_time', 'part_time', 'flexible', '']).optional(),
 });
 
 // Trainer details schema
 const TrainerDetailsSchema = z.object({
-  trainers: z.array(z.string().min(2)).min(1),
-  qualifications_required: z.array(z.string()),
-  industry_experience_required: z.string().optional(),
-});
+  primary_trainer: z.string().optional(),
+  additional_trainers: z.array(z.string()).optional(),
+  qualifications_required: z.array(z.string()).optional(),
+}).optional();
 
 // Meta schema
 const MetaSchema = z.object({
   qualification: QualificationSchema,
   duration: DurationSchema,
-  delivery_mode: z.enum(['face_to_face', 'online', 'blended']),
-  cohort_profile: z.string().min(20),
+  delivery_mode: z.enum(['face_to_face', 'online', 'blended', 'workplace', 'mixed']),
+  cohort_profile: z.string().min(10),
   trainer_details: TrainerDetailsSchema,
-  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  llnp_levels: z.object({
-    language: z.number().int().min(1).max(5).optional(),
-    literacy: z.number().int().min(1).max(5).optional(),
-    numeracy: z.number().int().min(1).max(5).optional(),
+  start_date: z.string().optional(),
+  end_date: z.string().optional(),
+  venue: z.string().optional(),
+  class_size: z.object({
+    min: z.number().int().min(1).optional(),
+    max: z.number().int().min(1).optional(),
+    target: z.number().int().min(1).optional(),
   }).optional(),
 });
 
 // Activity schema
 const ActivitySchema = z.object({
-  title: z.string().min(5),
-  duration_hours: z.number().min(0.5).max(40),
-  delivery_method: z.enum(['face_to_face', 'online', 'self_paced', 'workplace', 'workshop']),
-  description: z.string().min(10).optional(),
+  title: z.string().min(3),
+  duration_hours: z.number().min(0.25).max(40),
+  delivery_method: z.enum(['lecture', 'workshop', 'tutorial', 'practical', 'online_module', 'simulation', 'workplace_visit', 'guest_speaker', 'group_work', 'self_paced', 'project', 'other']),
+  description: z.string().optional(),
   resources: z.array(z.string()).optional(),
   learning_outcomes: z.array(z.string()).optional(),
 });
 
 // Assessment schema
 const AssessmentSchema = z.object({
-  title: z.string().min(5),
+  title: z.string().min(3),
   type: z.enum([
-    'written_test',
-    'practical_demonstration',
+    'written',
+    'practical',
     'project',
     'portfolio',
-    'role_play',
-    'case_study',
+    'observation',
     'presentation',
-    'workplace_observation',
-    'third_party_report',
-    'logbook',
-    'research_assignment',
-    'group_assessment',
+    'roleplay',
+    'case_study',
+    'exam',
+    'interview',
+    'recognition',
     'other'
   ]),
   units_assessed: z.array(z.string()).min(1),
-  due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  duration_hours: z.number().min(0.5).optional(),
-  weighting: z.number().min(0).max(100).optional(),
+  due_date: z.string().optional(),
+  duration_hours: z.number().min(0).optional(),
+  weighting: z.string().optional(),
   description: z.string().optional(),
 });
 
 // Weekly plan schema
 const WeeklyPlanSchema = z.object({
   week_number: z.number().int().min(1),
-  activities: z.array(ActivitySchema).min(1),
+  week_theme: z.string().optional(),
+  units_covered: z.array(z.string()).optional(),
+  activities: z.array(ActivitySchema).min(0),
   assessments: z.array(AssessmentSchema).optional(),
   notes: z.string().optional(),
 });
@@ -98,10 +103,18 @@ const WeeklyPlanSchema = z.object({
 const UnitSchema = z.object({
   unit_code: z.string().regex(/^[A-Z]{3}[A-Z0-9]{6,10}$/),
   unit_title: z.string().min(5),
-  nominal_hours: z.number().int().min(10).max(500),
-  delivery_methods: z.array(z.enum(['face_to_face', 'online', 'blended', 'workplace'])),
-  assessment_methods: z.array(z.string()).min(1),
+  nominal_hours: z.number().min(1).max(1000),
+  unit_type: z.enum(['core', 'elective', 'prerequisite', '']).optional(),
+  delivery_methods: z.array(z.enum(['face_to_face', 'online', 'workplace', 'simulation', 'blended', 'self_paced'])).optional(),
+  assessment_methods: z.array(z.enum(['written', 'practical', 'project', 'portfolio', 'observation', 'presentation', 'roleplay', 'case_study', 'exam', 'interview', 'recognition', 'third_party_report', 'logbook'])).optional(),
+  assessment_tasks: z.array(z.object({
+    task_name: z.string(),
+    method: z.string(),
+    description: z.string().optional(),
+  })).optional(),
   prerequisites: z.array(z.string()).optional(),
+  weeks_scheduled: z.array(z.number().int().min(1)).optional(),
+  learning_resources: z.array(z.string()).optional(),
 });
 
 // Resources schema
@@ -113,20 +126,27 @@ const ResourcesSchema = z.object({
   external: z.array(z.string()).optional(),
 });
 
-// Risk/Assumption schema
-const RiskAssumptionSchema = z.object({
-  description: z.string().min(10),
-  category: z.enum(['resource', 'scheduling', 'learner', 'compliance', 'delivery', 'other']).optional(),
+// Risk schema
+const RiskSchema = z.object({
+  risk_description: z.string().min(10),
+  category: z.enum(['learner', 'trainer', 'resource', 'compliance', 'scheduling', 'assessment', 'external', 'other']).optional(),
+  likelihood: z.enum(['low', 'medium', 'high']),
+  impact: z.enum(['low', 'medium', 'high']),
   mitigation: z.string().optional(),
-  likelihood: z.enum(['low', 'medium', 'high']).optional(),
-  impact: z.enum(['low', 'medium', 'high']).optional(),
+});
+
+// Assumption schema
+const AssumptionSchema = z.object({
+  assumption: z.string().min(10),
+  category: z.enum(['learner_capability', 'resource_availability', 'trainer_qualification', 'scheduling', 'compliance', 'other']).optional(),
+  validation_required: z.boolean().optional(),
 });
 
 // Compliance notes schema
 const ComplianceNotesSchema = z.object({
-  volume_of_learning_justification: z.string().optional(),
-  packaging_rules_compliance: z.string().optional(),
-  assessment_validation_strategy: z.string().optional(),
+  volume_of_learning: z.string().optional(),
+  training_packaging_compliance: z.string().optional(),
+  assessment_validation: z.string().optional(),
   trainer_assessor_requirements: z.string().optional(),
 }).optional();
 
@@ -136,9 +156,9 @@ export const GeneratedPlanSchema = z.object({
   meta: MetaSchema,
   weekly_plan: z.array(WeeklyPlanSchema).min(1),
   units: z.array(UnitSchema).min(1),
-  resources: ResourcesSchema,
-  risks: z.array(RiskAssumptionSchema).optional(),
-  assumptions: z.array(RiskAssumptionSchema).optional(),
+  resources: ResourcesSchema.optional(),
+  risks: z.array(RiskSchema).optional(),
+  assumptions: z.array(AssumptionSchema).optional(),
   confidence_score: z.number().min(0).max(1),
   generation_notes: z.string().optional(),
   compliance_notes: ComplianceNotesSchema,
