@@ -166,19 +166,28 @@ export function validatePlan(plan: unknown): ValidationResult {
       data: validated as GeneratedPlan,
     };
   } catch (error) {
+    console.error('[VALIDATOR] Validation error:', error);
     if (error instanceof z.ZodError) {
-      const errors = error.errors.map((err) => {
-        const path = err.path.join('.');
-        return `${path}: ${err.message}`;
-      });
-      return {
-        success: false,
-        errors,
-      };
+      try {
+        const errors = error.errors.map((err) => {
+          const path = err.path.join('.');
+          return `${path}: ${err.message}`;
+        });
+        return {
+          success: false,
+          errors,
+        };
+      } catch (mapError) {
+        console.error('[VALIDATOR] Error processing ZodError:', mapError);
+        return {
+          success: false,
+          errors: ['Error processing validation errors: ' + (mapError instanceof Error ? mapError.message : 'Unknown error')],
+        };
+      }
     }
     return {
       success: false,
-      errors: ['Unknown validation error'],
+      errors: ['Unknown validation error: ' + (error instanceof Error ? error.message : String(error))],
     };
   }
 }
@@ -226,19 +235,28 @@ export function validatePartialPlan(plan: unknown): ValidationResult {
       data: validated as GeneratedPlan,
     };
   } catch (error) {
+    console.error('[VALIDATOR] Partial validation error:', error);
     if (error instanceof z.ZodError) {
-      const errors = error.errors.map((err) => {
-        const path = err.path.join('.');
-        return `${path}: ${err.message}`;
-      });
-      return {
-        success: false,
-        errors,
-      };
+      try {
+        const errors = error.errors.map((err) => {
+          const path = err.path.join('.');
+          return `${path}: ${err.message}`;
+        });
+        return {
+          success: false,
+          errors,
+        };
+      } catch (mapError) {
+        console.error('[VALIDATOR] Error processing ZodError:', mapError);
+        return {
+          success: false,
+          errors: ['Error processing validation errors: ' + (mapError instanceof Error ? mapError.message : 'Unknown error')],
+        };
+      }
     }
     return {
       success: false,
-      errors: ['Unknown validation error'],
+      errors: ['Unknown validation error: ' + (error instanceof Error ? error.message : String(error))],
     };
   }
 }

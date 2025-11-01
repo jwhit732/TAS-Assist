@@ -216,7 +216,7 @@ async function analyzePlanPhase(
     // Call Claude API
     const message = await client.messages.create({
       model: ANTHROPIC_MODEL,
-      max_tokens: 16000,
+      max_tokens: 32000,  // Increased for Haiku 4.5 to avoid truncation
       temperature: 0.7,
       system: context.systemPrompt,
       messages: [
@@ -231,12 +231,18 @@ async function analyzePlanPhase(
 
     // Extract JSON from response
     const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+    console.log('[APRV] Response length:', responseText.length, 'characters');
+    console.log('[APRV] Response preview:', responseText.substring(0, 200));
+    console.log('[APRV] Response end:', responseText.substring(responseText.length - 200));
+
     const jsonPlan = extractJSON(responseText);
 
     if (!jsonPlan) {
+      console.error('[APRV] Failed to extract JSON from response');
       throw new Error('Failed to extract valid JSON from Claude response');
     }
 
+    console.log('[APRV] Extracted JSON successfully, keys:', Object.keys(jsonPlan));
     logPhase(context, 'plan', 'success', `Generated plan in ${duration}ms`);
 
     return jsonPlan;
