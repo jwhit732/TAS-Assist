@@ -1,382 +1,210 @@
-# Testing Guide - TAS Assistant
+# Testing the Schema Validation Fixes
 
-## Overview
+This guide explains how to test the validation schema fixes that align the Zod schema with the JSON schema.
 
-This guide covers the three required testing scenarios for the TAS Assistant Stage 0 MVP.
+## Quick Test (Recommended)
 
-**Success Criteria**: Each scenario should produce valid, usable output on first generation >80% of the time.
+Run the automated validation test:
 
----
-
-## Pre-Testing Setup
-
-1. **Start the development server**:
-   ```bash
-   npm run dev
-   ```
-
-2. **Open browser**: Navigate to `http://localhost:3000`
-
-3. **Verify API key**: Check that `.env.local` has a valid `ANTHROPIC_API_KEY`
-
----
-
-## Scenario 1: Short Course (2-week F2F delivery, single trainer)
-
-### Objective
-Test minimal information input with basic assumptions.
-
-### Test Data
-
-**Qualification Details:**
-- Qualification Name: `Certificate III in Customer Engagement`
-- Qualification Code: `SIR30216` (optional)
-- Delivery Mode: `Face to Face`
-
-**Delivery Details:**
-- Duration: `2` weeks
-- Total Hours: `80` hours
-
-**Cohort Profile:**
-```
-Small cohort of 12 adult learners, ages 25-45. Mix of employment backgrounds.
-LLN levels: Average (Level 3). Basic digital literacy.
+```bash
+npx tsx test-schema-validation.ts
 ```
 
-**Advanced Options** (optional):
-- Resources: Classroom/Training Room, Computer Lab
-- Assessments: Written Tests, Practical Demonstrations
+This test validates a sample plan that uses all the fixed schema fields:
+- ✅ Assessment types: `written`, `practical`, `observation`
+- ✅ Activity delivery methods: `lecture`, `workshop`, `practical`
+- ✅ Field names: `risk_description`, `assumption`
+- ✅ Optional fields and flexible validation
 
-### Expected Outcomes
-
-✅ **Should generate:**
-- 2-week weekly plan with distributed activities
-- Realistic hour allocation (40 hours/week)
-- Face-to-face delivery methods throughout
-- Basic resource requirements
-- Assumptions documented (e.g., "Assumed single trainer delivery")
-- Confidence score: 0.6-0.75 (lower due to limited info)
-
-✅ **Should handle gracefully:**
-- Missing qualification code
-- Minimal cohort details
-- Limited resource specification
-
-❌ **Should NOT:**
-- Generate online activities
-- Require complex multi-trainer coordination
-- Include resources not requested
-
-### Testing Steps
-
-1. Fill in the form with test data above
-2. Click "Generate Unit Plan"
-3. Wait 1-3 minutes for generation
-4. Review the results:
-   - Check Overview tab for accuracy
-   - Verify Weekly Plan has 2 weeks
-   - Confirm delivery mode is face-to-face throughout
-   - Review Risks & Assumptions tab for documented assumptions
-   - Check confidence score is reasonable
-
-5. Test exports:
-   - Export as DOCX (should download)
-   - Print PDF (browser dialog should open)
-   - Export as Markdown (should download)
-
-6. Verify localStorage:
-   - Refresh the page
-   - Should see the same plan still displayed
+If you see "✅ VALIDATION PASSED!" - the fixes are working!
 
 ---
 
-## Scenario 2: Blended Program (8-week mixed mode, multiple units)
+## Full Application Test
 
-### Objective
-Test moderate complexity with blended delivery.
+Test the complete generation flow through the web interface:
 
-### Test Data
+### 1. Start the Development Server
 
-**Qualification Details:**
-- Qualification Name: `Certificate IV in Training and Assessment`
-- Qualification Code: `TAE40122`
-- Delivery Mode: `Blended`
+```bash
+# Make sure you have your API key set
+export ANTHROPIC_API_KEY="your-api-key-here"
 
-**Delivery Details:**
-- Duration: `8` weeks
-- Total Hours: `240` hours
-
-**Cohort Profile:**
-```
-Working professionals, evening and weekend delivery.
-Ages 30-55, experienced in their industries but new to formal training.
-LLN: Level 3-4. Good digital literacy, comfortable with LMS.
-Mix of cultural backgrounds. Some with prior learning recognition.
+# Start the dev server
+npm run dev
 ```
 
-**Advanced Options:**
-- Resources:
-  - Classroom/Training Room
-  - Computer Lab
-  - Online Learning Platform (LMS)
+The server will start at http://localhost:3000
 
-- Assessments:
-  - Written Tests
-  - Practical Demonstrations
-  - Projects/Case Studies
-  - Portfolio Assessment
-  - Workplace Observation
+### 2. Fill Out the Intake Form
 
-- Unit List (paste this):
-  ```
-  TAELLN411 - Address adult language, literacy and numeracy skills
-  TAEASS412 - Assess competence
-  TAEDES401 - Design and develop learning programs
-  TAEDEL401 - Plan, organise and deliver group-based learning
-  ```
+Navigate to the home page and fill in the form:
 
-### Expected Outcomes
+**Required Fields:**
+- Qualification Title: e.g., "Certificate IV in Business"
+- Qualification Code: e.g., "BSB40120"
+- Duration (weeks): e.g., 12
+- Total Hours: e.g., 360
+- Delivery Mode: Select "Blended" or any option
+- Cohort Profile: Enter at least 20 characters describing your learners
 
-✅ **Should generate:**
-- 8-week detailed plan with progression
-- Mix of face-to-face, online, and self-paced activities
-- All 4 units incorporated into weekly plan
-- Realistic assessment schedule spread across weeks
-- Consideration for working professionals (evening/weekend)
-- Resources for both online and F2F delivery
-- Confidence score: 0.75-0.85 (good info provided)
+**Optional Fields:**
+- Start Date
+- Resources
+- Assessment Preferences
+- Unit List
 
-✅ **Should demonstrate:**
-- Unit sequencing logic (e.g., TAELLN before assessment units)
-- Balanced F2F vs. online mix
-- Workplace observation scheduling
-- Portfolio building across multiple weeks
-- LMS resource allocation
+### 3. Generate the Plan
 
-❌ **Should NOT:**
-- Cram all content into first few weeks
-- Schedule workplace observation in week 1
-- Ignore the working professional context
+Click "Generate Plan" and wait for the AI to create the unit plan.
 
-### Testing Steps
+### 4. Check for Validation Success
 
-1. Fill in the form (copy-paste unit list)
-2. Expand "Advanced Options"
-3. Select multiple resources and assessment types
-4. Generate plan
-5. Review in detail:
-   - Overview: Verify all 4 units present
-   - Weekly Plan: Check mix of delivery modes
-   - Units: Ensure all units from list included
-   - Risks: Should mention workplace observation logistics
-   - Compliance: Check TAE-specific requirements
+**What to look for:**
 
-6. Export all three formats
-7. Reset and verify localStorage cleared
+✅ **Success Indicators:**
+- Plan generates successfully
+- No validation errors in the response
+- Plan displays correctly in the UI
+- All sections are populated (metadata, meta, weekly_plan, units, etc.)
 
----
+❌ **Previous Errors (Now Fixed):**
+- "Invalid option: expected one of..." - Assessment type mismatches
+- "Invalid input: expected array, received string" - Prerequisites format
+- "Invalid string: must match pattern" - Date format issues
+- "Invalid input: expected string, received undefined" - Missing field names
 
-## Scenario 3: Multi-trainer Complex Delivery (Various resources, long duration)
+### 5. Check Server Logs
 
-### Objective
-Test high complexity with multiple trainers and extensive resources.
+Look at the terminal running `npm run dev`:
 
-### Test Data
-
-**Qualification Details:**
-- Qualification Name: `Diploma of Leadership and Management`
-- Qualification Code: `BSL50420`
-- Delivery Mode: `Blended`
-
-**Delivery Details:**
-- Duration: `16` weeks
-- Total Hours: `480` hours
-
-**Cohort Profile:**
-```
-Cohort of 20 mid-level managers from various industries.
-Ages 28-50, diverse educational backgrounds.
-LLN: Level 4-5. High digital competence.
-Mix of full-time and part-time learners.
-Preference for weekend intensives and online modules.
-Some participants in regional/remote locations (Zoom access required).
-Industry mentors available for guest sessions.
+```bash
+# You should see logs like:
+[API] Received intake data: ...
+[APRV] Starting generation...
+[APRV] Response length: XXXX characters
+[VALIDATOR] Validation error: ... (only if there are issues)
+[API] Final validation passed  # ← This means success!
 ```
 
-**Advanced Options:**
-- Resources: ALL checkboxes
+---
 
-- Assessments: ALL checkboxes
+## API Test (Advanced)
 
-- Unit List (paste 6+ units):
-  ```
-  BSBTWK502 - Manage team effectiveness
-  BSBLDR523 - Lead and manage effective workplace relationships
-  BSBOPS502 - Manage business operational plans
-  BSBFIN501 - Manage budgets and financial plans
-  BSBCMM511 - Communicate with influence
-  BSBSTR502 - Facilitate continuous improvement
-  ```
+Test the API directly with curl:
 
-### Expected Outcomes
+```bash
+curl -X POST http://localhost:3000/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "qualification": "Certificate IV in Business",
+    "qualificationCode": "BSB40120",
+    "durationWeeks": 12,
+    "totalHours": 360,
+    "deliveryMode": "blended",
+    "cohortProfile": "Adult learners with diverse backgrounds and some work experience in business settings"
+  }'
+```
 
-✅ **Should generate:**
-- 16-week comprehensive plan
-- Multi-trainer coordination suggestions
-- Weekend intensive scheduling
-- Online module incorporation for regional learners
-- Guest speaker/mentor integration
-- Extensive resource requirements documented
-- Complex assessment schedule (spread appropriately)
-- Risk mitigation for regional delivery
-- Assumptions about trainer qualifications
-- Confidence score: 0.85-0.95 (comprehensive info)
-
-✅ **Should demonstrate:**
-- Strategic unit sequencing (leadership before budgets)
-- Resource variety across delivery
-- Assessment clustering where appropriate
-- Consideration for part-time learners
-- Regional access accommodations
-
-✅ **Should document assumptions about:**
-- Trainer availability and qualifications
-- LMS capabilities
-- Zoom infrastructure
-- Industry mentor schedules
-
-❌ **Should NOT:**
-- Create unrealistic weekly hour loads
-- Schedule all assessments in final weeks
-- Ignore regional participant needs
-
-### Testing Steps
-
-1. Fill in all fields with comprehensive data
-2. Select ALL resources and assessment types
-3. Paste 6-unit list
-4. Generate and wait (this may take closer to 3 minutes)
-5. Comprehensive review:
-   - Overview: High confidence score expected
-   - Weekly Plan: Check for strategic pacing
-   - Units: Verify all 6 units incorporated
-   - Risks: Should identify multi-trainer coordination, regional access
-   - Assumptions: Check for trainer quals, resource availability
-   - Compliance: BSB packaging rules, VoL justification
-
-6. Test all exports with large complex plan
-7. Check localStorage capacity with large plan
+**Expected Response:**
+```json
+{
+  "success": true,
+  "plan": {
+    "metadata": { ... },
+    "meta": { ... },
+    "weekly_plan": [ ... ],
+    "units": [ ... ],
+    ...
+  },
+  "metadata": {
+    "duration_ms": 15000,
+    "logs": [ ... ]
+  }
+}
+```
 
 ---
 
-## Cross-Scenario Validation
+## What Was Fixed?
 
-### For All Scenarios
+### Schema Alignments
 
-**Schema Compliance:**
-- All plans must validate against `prompts/schema.json`
-- No missing required fields
-- Proper data types and formats
+1. **Assessment Types**
+   - Before: `written_test`, `practical_demonstration`, `role_play`
+   - After: `written`, `practical`, `observation`, `roleplay`
 
-**APRV Loop Evidence:**
-- Confidence score present (0.0-1.0)
-- Generation notes included
-- Reflection phase visible in logs (if viewing dev logs)
+2. **Activity Delivery Methods**
+   - Before: Limited to `face_to_face`, `online`, `workshop`
+   - After: Full range including `lecture`, `tutorial`, `practical`, `simulation`, etc.
 
-**User Experience:**
-- Generation time < 3 minutes
-- Clear loading state
-- Error handling (test with invalid API key)
-- Reset functionality works
-- localStorage persistence across refreshes
+3. **Field Names**
+   - Risks: `description` → `risk_description`
+   - Assumptions: `description` → `assumption`
+   - Compliance notes: Field names updated
 
-**Export Quality:**
-- DOCX opens in Word, editable, professional formatting
-- PDF via print dialog produces clean document
-- Markdown is readable, well-formatted
+4. **Data Types**
+   - Assessment `weighting`: number → string (allows "20%", "Major", etc.)
+   - Assessment `due_date`: Relaxed validation (allows "End of week 4")
 
-**Accessibility:**
-- Keyboard navigation works
-- Form validation messages clear
-- Screen reader friendly (test with NVDA/JAWS if available)
+5. **Optional Fields**
+   - Made many fields optional to match JSON schema flexibility
+   - Added missing fields: `unit_type`, `assessment_tasks`, `week_theme`, etc.
+
+6. **Dependencies**
+   - Zod: Fixed version from ^4.1.12 to ^3.23.8
 
 ---
 
-## Performance Benchmarks
+## Troubleshooting
 
-| Scenario | Expected Gen Time | Expected Confidence | Plan Complexity |
-|----------|-------------------|---------------------|-----------------|
-| 1. Short Course | 30-90 seconds | 0.60-0.75 | Low |
-| 2. Blended Program | 60-120 seconds | 0.75-0.85 | Medium |
-| 3. Multi-trainer Complex | 90-180 seconds | 0.85-0.95 | High |
+### Test Fails with "VALIDATION FAILED"
 
----
+Check the error messages:
+```bash
+npx tsx test-schema-validation.ts
+```
 
-## Common Issues & Troubleshooting
+The errors will show which fields are still mismatched.
 
-### Issue: API Key Error
-**Solution**: Check `.env.local` file, ensure key starts with `sk-ant-api03-`
+### API Returns 500 Error
 
-### Issue: Generation Times Out
-**Solution**: Check API route timeout settings, verify network connection
+Check the server logs for validation errors:
+```bash
+[API] Final validation failed: [
+  "field.path: Error message"
+]
+```
 
-### Issue: Validation Errors
-**Solution**: Check browser console for Zod errors, verify schema compatibility
+This indicates a field that's still mismatched between JSON and Zod schemas.
 
-### Issue: Export Not Working
-**Solution**:
-- DOCX: Check `docx` and `file-saver` installed
-- PDF: Ensure print CSS in `globals.css`
-- Markdown: Check browser download permissions
+### Build Fails
 
-### Issue: localStorage Full
-**Solution**: Clear old plans via browser DevTools → Application → Local Storage
+If you see network errors about Google Fonts, ignore them - these are unrelated to the validation fixes.
 
----
-
-## Success Criteria Checklist
-
-After running all three scenarios:
-
-- [ ] All three plans generated successfully (>80% success rate)
-- [ ] Each plan validated against schema (100%)
-- [ ] Generation times under 3 minutes (100%)
-- [ ] All exports working (DOCX, PDF, Markdown)
-- [ ] localStorage persistence functional
-- [ ] No console errors (except expected warnings)
-- [ ] Plans are audit-ready and usable
-- [ ] Confidence scores reasonable for input quality
-- [ ] Assumptions documented where info missing
-- [ ] Risks identified appropriately
+To check only TypeScript errors:
+```bash
+npx tsc --noEmit --skipLibCheck
+```
 
 ---
 
-## Regression Testing (Future)
+## Next Steps
 
-When making changes, re-run all three scenarios to ensure:
-- No schema breakage
-- APRV loop still functioning
-- Export formats still working
-- Performance hasn't degraded
+After confirming the fixes work:
 
----
-
-## Reporting Issues
-
-When reporting bugs, include:
-1. Scenario being tested
-2. Exact input data used
-3. Expected vs. actual outcome
-4. Browser console errors
-5. Generation logs (if available)
-6. Screenshots
+1. ✅ Tests pass
+2. ✅ API generates plans successfully
+3. ✅ No validation errors
+4. Create a pull request to merge the changes
+5. Deploy to production
 
 ---
 
-## Next Steps After Testing
+## Support
 
-1. Document any patterns in failed generations
-2. Refine prompts in `prompts/system.md` if needed
-3. Adjust schema validation if too strict
-4. Optimize APRV loop based on logs
-5. Gather user feedback on plan quality
+If you encounter issues:
+1. Check that all dependencies are installed: `npm install`
+2. Verify your API key is set: `echo $ANTHROPIC_API_KEY`
+3. Review the error logs in detail
+4. Compare actual vs expected schema fields in `lib/schema-validator.ts` and `prompts/schema.json`
