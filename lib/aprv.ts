@@ -213,8 +213,8 @@ async function analyzePlanPhase(
 
     logPhase(context, 'analyze', 'success', 'Starting generation with Claude API');
 
-    // Call Claude API
-    const message = await client.messages.create({
+    // Call Claude API with streaming enabled for long responses
+    const stream = await client.messages.stream({
       model: ANTHROPIC_MODEL,
       max_tokens: 32000,  // Increased for Haiku 4.5 to avoid truncation
       temperature: 0.7,
@@ -227,10 +227,16 @@ async function analyzePlanPhase(
       ],
     });
 
+    // Collect the complete response from the stream
+    let responseText = '';
+    for await (const chunk of stream) {
+      if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+        responseText += chunk.delta.text;
+      }
+    }
+
     const duration = Date.now() - startTime;
 
-    // Extract JSON from response
-    const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
     console.log('[APRV] Response length:', responseText.length, 'characters');
     console.log('[APRV] Response preview:', responseText.substring(0, 200));
     console.log('[APRV] Response end:', responseText.substring(responseText.length - 200));
